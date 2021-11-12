@@ -50,10 +50,12 @@ In WSL Ubuntu, it should (as at November 2021...) be as easy as:
    2. `git clone https://github.com/kezenator/pico-lamp`
    3. `cd pico-lamp`
    4. `cd src`
-   5. `cmake .`
-   6. `make` (or `make -j8` to speed it up a bit, if you have 8 threads...)
+   5. `mkdir build`
+   6. `cd build`
+   7. `cmake ..`
+   8. `make` (or `make -j8` to speed it up a bit, if you have 8 threads...)
 3. Install the software on your Pico board:
    1. Hold down the `BOOTSEL` button and plug the Pico board into your PC.
    2. See that it appears as a USB removable drive.
-   3. Copy the `src/pico_lamp.uf2` file to the USB.
-   4. NOTE: On WSL, following the instructions above, this can be found at e.g. `\\wsl$\Ubuntu\home\kezenator\pico-lamp\src` in Windows Explorer.
+   3. Copy the `src/build/pico_lamp.uf2` file to the USB.
+   4. NOTE: On WSL, following the instructions above, this can be found at e.g. `\\wsl$\Ubuntu\home\kezenator\pico-lamp\src\build` in Windows Explorer.
