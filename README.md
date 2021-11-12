@@ -10,7 +10,7 @@ Raspberry Pi Pico code, in C++17, for a floor lamp project I'm working on for Ch
 
 1. [Raspberry Pi Pico](https://www.raspberrypi.com/products/raspberry-pi-pico/)
 2. Development hardware: [Pico Display Pack](https://shop.pimoroni.com/products/pico-display-pack)
-3. Real hardware: TBD
+3. Real hardware: TBD - haven't built it yet!
 
 ## Building the Software
 
@@ -36,4 +36,4 @@ Once all is setup, it's as easy as:
 Notes:
 1. You need to set the `PICO_SDK_PATH` environment variable.
    Things will work better in Visual Studio Code if you
-   change the path in TODO
+   change the path in TODO....

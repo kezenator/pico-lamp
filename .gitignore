@@ -1,0 +1,6 @@
+src/CMakeCache.txt
+src/CMakeFiles/
+src/Makefile
+src/cmake_install.cmake
+src/generated/
+src/pico-sdk/
