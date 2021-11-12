@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.12)
 # Pull in SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-project(pico_lamp C CXX)
+project(pico_lamp_project C CXX)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
@@ -21,3 +21,13 @@ add_compile_options(-Wall
         -Wno-unused-function # we have some for the docs that aren't called
         -Wno-maybe-uninitialized
         )
+
+add_executable(pico_lamp
+        main.cpp
+        )
+
+# pull in common dependencies
+target_link_libraries(pico_lamp pico_stdlib)
+
+# create map/bin/hex file etc.
+pico_add_extra_outputs(pico_lamp)

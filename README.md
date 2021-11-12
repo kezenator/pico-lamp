@@ -31,9 +31,8 @@ Once all is setup, it's as easy as:
 2. `cd src`
 3. `cmake`
 4. `make -j8`
-5. ???? - TODO
+5. Hold down the `BOOTSEL` button on your Pico.
+6. Copy the `pico_lamp.uf2` file to the USB drive that appears.
 
 Notes:
 1. You need to set the `PICO_SDK_PATH` environment variable.
-   Things will work better in Visual Studio Code if you
-   change the path in TODO....
