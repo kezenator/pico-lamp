@@ -1,13 +1,1 @@
-src/CMakeCache.txt
-src/CMakeFiles/
-src/Makefile
-src/cmake_install.cmake
-src/generated/
-src/pico-sdk/
-src/elf2uf2/
-src/pico_lamp.bin
-src/pico_lamp.dis
-src/pico_lamp.elf
-src/pico_lamp.elf.map
-src/pico_lamp.hex
-src/pico_lamp.uf2
+src/build/

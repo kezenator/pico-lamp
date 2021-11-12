@@ -1,7 +1,21 @@
 cmake_minimum_required(VERSION 3.12)
 
-# Pull in SDK (must be before project)
+# Pull in SDK
+
 include(pico_sdk_import.cmake)
+
+# Pull in Pimoroni files.
+# NOTE: It doesn't accept environment variables - so add that here
+
+if (DEFINED ENV{PIMORONI_PICO_PATH} AND (NOT PIMORONI_PICO_PATH))
+    set(PIMORONI_PICO_PATH $ENV{PIMORONI_PICO_PATH})
+    message("Using PIMORONI_PICO_PATH from environment ('${PIMORONI_PICO_PATH}')")
+endif ()
+
+include(pimoroni_pico_import.cmake)
+add_subdirectory(${PIMORONI_PICO_PATH} pimoroni-pico EXCLUDE_FROM_ALL)
+
+# Start our project setup
 
 project(pico_lamp_project C CXX)
 set(CMAKE_C_STANDARD 11)
@@ -17,9 +31,6 @@ set(PICO_LAMP_PATH ${PROJECT_SOURCE_DIR})
 pico_sdk_init()
 
 add_compile_options(-Wall
-        -Wno-format          # int != int32_t as far as the compiler is concerned because gcc has int32_t as long int
-        -Wno-unused-function # we have some for the docs that aren't called
-        -Wno-maybe-uninitialized
         )
 
 add_executable(pico_lamp
@@ -27,7 +38,7 @@ add_executable(pico_lamp
         )
 
 # pull in common dependencies
-target_link_libraries(pico_lamp pico_stdlib)
+target_link_libraries(pico_lamp pico_stdlib hardware_spi hardware_pwm hardware_dma pico_display)
 
 # create map/bin/hex file etc.
 pico_add_extra_outputs(pico_lamp)
