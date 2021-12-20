@@ -38,7 +38,7 @@ add_executable(pico_lamp
         )
 
 # pull in common dependencies
-target_link_libraries(pico_lamp pico_stdlib hardware_spi hardware_pwm hardware_dma pico_display)
+target_link_libraries(pico_lamp pico_stdlib hardware_flash hardware_spi hardware_pwm hardware_dma pico_display)
 
 # create map/bin/hex file etc.
 pico_add_extra_outputs(pico_lamp)

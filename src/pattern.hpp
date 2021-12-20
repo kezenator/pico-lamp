@@ -6,7 +6,7 @@ class Pattern
 public:
     static constexpr size_t NUM_LEDS = pimoroni::PicoDisplay::WIDTH;
 
-    using RenderFunc = std::function<void(std::array<Color, NUM_LEDS> &buffer)>;
+    using RenderFunc = std::function<void(std::array<Color, NUM_LEDS> &buffer, uint64_t animate_ms)>;
     using ptr = std::shared_ptr<Pattern>;
 
     virtual ~Pattern()
@@ -39,7 +39,7 @@ public:
 
             RenderFunc get_preview_render_func() override
             {
-                return [=](std::array<Color, NUM_LEDS> &buffer)
+                return [=](std::array<Color, NUM_LEDS> &buffer, uint64_t /* animate_ms */)
                 {
                     for (size_t i = 0; i < NUM_LEDS; ++i)
                     {
@@ -59,6 +59,62 @@ public:
         };
 
         return std::make_shared<SolidPattern>(std::move(name), color);
+    }
+
+    static Pattern::ptr rainbow()
+    {
+        class RainbowPattern : public Pattern
+        {
+        public:
+            ~RainbowPattern()
+            {
+            }
+
+            RainbowPattern()
+                : m_name("Rainbow")
+            {
+            }
+
+            const std::string &get_name() override
+            {
+                return m_name;
+            }
+
+            RenderFunc get_preview_render_func() override
+            {
+                return [=](std::array<Color, NUM_LEDS> &buffer, uint64_t /* animate_ms */)
+                {
+                    for (size_t i = 0; i < NUM_LEDS; ++i)
+                    {
+                        buffer[i] = Color::from_hsv(
+                            i * 255 / NUM_LEDS,
+                            255,
+                            255);
+                    }
+                };
+            }
+
+            RenderFunc get_main_render_func() override
+            {
+                return [=](std::array<Color, NUM_LEDS> &buffer, uint64_t animate_ms)
+                {
+                    Color cur_solid = Color::from_hsv(
+                        (animate_ms % 15000) * 255 / 15000,
+                        255,
+                        255);
+
+                    for (size_t i = 0; i < NUM_LEDS; ++i)
+                    {
+                        buffer[i] = cur_solid;
+                    }
+                };
+            }
+
+        private:
+            std::string m_name;
+        };
+
+        return std::make_shared<RainbowPattern>();
     }
 };
 

@@ -10,13 +10,15 @@ public:
         TOGGLE_OFF,
         TOGGLE_FAV_PATTERN,
         SELECT_NEW_PATTERN,
+        SELECT_NEW_LEVEL,
         SAVE_CONFIG,
+        FLASH,
     };
 
     Button()
         : m_cur_pressed(false)
+        , m_state(IDLE)
         , m_last_press_time(0)
-        , m_active(false)
         , m_press_count(0)
     {
     }
@@ -36,38 +38,60 @@ public:
             {
                 m_last_press_time = cur_ms;
 
-                if (!m_active)
+                switch (m_state)
                 {
-                    m_active = true;
-                    m_press_count = 1;
-                    result_action = TOGGLE_OFF;
-                }
-                else
-                {
-                    m_press_count += 1;
+                    case IDLE:
+                        m_state = SELECTING_PATTERN;
+                        m_press_count = 1;
+                        result_action = TOGGLE_OFF;
+                        break;
 
-                    if (m_press_count == 2)
-                    {
-                        result_action = TOGGLE_FAV_PATTERN;
-                    }
-                    else
-                    {
-                        result_action = SELECT_NEW_PATTERN;
-                        result_count = m_press_count - 3;
-                    }
+                    case SELECTING_PATTERN:
+                        m_press_count += 1;
+
+                        if (m_press_count == 2)
+                        {
+                            result_action = TOGGLE_FAV_PATTERN;
+                        }
+                        else
+                        {
+                            result_action = SELECT_NEW_PATTERN;
+                            result_count = m_press_count - 3;
+                        }
+                        break;
+
+                    case SELECTING_LEVEL:
+                        m_press_count += 1;
+                        
+                        result_action = SELECT_NEW_LEVEL;
+                        result_count = m_press_count;
+                        break;
                 }
             }
         }
-        else if (m_active)
+        else if (m_state != IDLE)
         {
             uint64_t delay = cur_ms - m_last_press_time;
 
-            if (delay > 2000)
+            if (delay > 1500)
             {
-                m_active = false;
-                m_press_count = 0;
+                if ((m_state == SELECTING_LEVEL)
+                    || (m_press_count <= 2))
+                {
+                    m_state = IDLE;
+                    m_press_count = 0;
+                    m_last_press_time = cur_ms;
 
-                result_action = SAVE_CONFIG;
+                    result_action = SAVE_CONFIG;
+                }
+                else // selecting new pattern
+                {
+                    m_state = SELECTING_LEVEL;
+                    m_press_count = 0;
+                    m_last_press_time = cur_ms;
+
+                    result_action = FLASH;
+                }
             }
         }
 
@@ -75,9 +99,16 @@ public:
     }
 
 private:
+    enum State
+    {
+        IDLE,
+        SELECTING_PATTERN,
+        SELECTING_LEVEL,
+    };
+
     bool m_cur_pressed;
+    State m_state;
     uint64_t m_last_press_time;
-    bool m_active;
     uint64_t m_press_count;
 };
 

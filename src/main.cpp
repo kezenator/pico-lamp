@@ -1,9 +1,13 @@
 #include "pico/stdlib.h"
+#include "hardware/flash.h"
+#include "hardware/sync.h"
 #include "pico_display.hpp"
 //#include "font8_data.hpp"
 
+#include <cstring>
 #include <map>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -40,6 +44,8 @@ int main()
     Config config;
     Config new_config;
 
+    config.load();
+
     // Setup patterns
 
     Pattern::ptr off_pattern = Pattern::solid("Off", Color(0, 0, 0));
@@ -54,6 +60,7 @@ int main()
     patterns_by_index.push_back(Pattern::solid("Blue", Color(0, 0, 255)));
     patterns_by_index.push_back(Pattern::solid("Violet", Color(128, 0, 255)));
     patterns_by_index.push_back(Pattern::solid("Magenta", Color(255, 0, 255)));
+    patterns_by_index.push_back(Pattern::rainbow());
 
     std::map<std::string, Pattern::ptr> patterns_by_name;
     for (const auto &pattern : patterns_by_index)
@@ -74,6 +81,14 @@ int main()
     std::array<Color, Pattern::NUM_LEDS> color_buffer;
 
     Pattern::RenderFunc cur_renderer = off_pattern->get_main_render_func();
+    uint8_t cur_level = 0;
+    uint64_t cur_start_ms = to_ms_since_boot(get_absolute_time());
+
+    if (config.is_on)
+    {
+        cur_renderer = get_pattern_by_name(config.cur.name)->get_main_render_func();
+        cur_level = config.cur.level;
+    }
 
     while (true)
     {
@@ -86,6 +101,7 @@ int main()
             | pico_display.is_pressed(pimoroni::PicoDisplay::X)
             | pico_display.is_pressed(pimoroni::PicoDisplay::Y);
 
+        bool do_flash = false;
         auto [action, index] = button.update(pressed, cur_ms);
         switch (action)
         {
@@ -97,48 +113,97 @@ int main()
                 new_config.is_on = !new_config.is_on;
 
                 if (new_config.is_on)
-                    cur_renderer = get_pattern_by_name(new_config.cur_pattern_name)->get_main_render_func();
+                {
+                    cur_renderer = get_pattern_by_name(new_config.cur.name)->get_preview_render_func();
+                    cur_level = new_config.cur.level;
+                    cur_start_ms = cur_ms;
+                }
                 else
+                {
                     cur_renderer = off_pattern->get_main_render_func();
+                    cur_level = 0;
+                    cur_start_ms = cur_ms;
+                }
 
                 break;
 
             case Button::TOGGLE_FAV_PATTERN:
                 new_config = config;
                 new_config.is_on = true;
-                std::swap(new_config.cur_pattern_name, new_config.prev_pattern_name);
+                new_config.cur = config.prev;
+                new_config.prev = config.cur;
 
-                cur_renderer = get_pattern_by_name(new_config.cur_pattern_name)->get_main_render_func();
+                cur_renderer = get_pattern_by_name(new_config.cur.name)->get_preview_render_func();
+                cur_level = new_config.cur.level;
+                cur_start_ms = cur_ms;
                 break;
 
             case Button::SELECT_NEW_PATTERN:
                 new_config = config;
                 new_config.is_on = true;
-                new_config.cur_pattern_name = patterns_by_index[index % patterns_by_index.size()]->get_name();
-                new_config.prev_pattern_name = config.cur_pattern_name;
+                new_config.cur = { patterns_by_index[index % patterns_by_index.size()]->get_name(), 255 };
+                new_config.prev = config.cur;
 
-                if (new_config.prev_pattern_name == new_config.cur_pattern_name)
+                if (new_config.prev.name == new_config.cur.name)
                 {
-                    new_config.prev_pattern_name = config.prev_pattern_name;
+                    new_config.prev = config.prev;
                 }
 
-                cur_renderer = get_pattern_by_name(new_config.cur_pattern_name)->get_main_render_func();
+                cur_renderer = get_pattern_by_name(new_config.cur.name)->get_preview_render_func();
+                cur_level = new_config.cur.level;
+                cur_start_ms = cur_ms;
+                break;
+
+            case Button::SELECT_NEW_LEVEL:
+                new_config.cur.level = 255 - ((index % 4) * 64);
+
+                cur_renderer = get_pattern_by_name(new_config.cur.name)->get_preview_render_func();
+                cur_level = new_config.cur.level;
+                cur_start_ms = cur_ms;
                 break;
 
             case Button::SAVE_CONFIG:
                 config = new_config;
+                config.save();
+
+                if (config.is_on)
+                {
+                    cur_renderer = get_pattern_by_name(config.cur.name)->get_main_render_func();
+                    cur_level = config.cur.level;
+                    cur_start_ms = cur_ms;
+                }
+                else
+                {
+                    cur_renderer = off_pattern->get_main_render_func();
+                    cur_level = 0;
+                    cur_start_ms = cur_ms;
+                }
+
+                do_flash = true;
+                break;
+
+            case Button::FLASH:
+                do_flash = true;
                 break;
         }
 
         // Render to buffer
 
-        cur_renderer(color_buffer);
+        if (do_flash)
+        {
+            off_pattern->get_main_render_func()(color_buffer, cur_ms - cur_start_ms);
+        }
+        else
+        {
+            cur_renderer(color_buffer, cur_ms - cur_start_ms);
+        }
 
         // Display
 
         for (uint16_t x = 0; x < PicoDisplay::WIDTH; ++x)
         {
-            pico_display.set_pen(color_buffer[x].red, color_buffer[x].green, color_buffer[x].blue);
+            Color c = color_buffer[x].scale(cur_level);
+            pico_display.set_pen(c.red, c.green, c.blue);
             pico_display.line({x, 0}, {x, PicoDisplay::HEIGHT - 1});
         }
         pico_display.update();
