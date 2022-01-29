@@ -18,6 +18,7 @@
 #include "button.hpp"
 #include "color.hpp"
 #include "config.hpp"
+#include "debounce.hpp"
 #include "pattern.hpp"
 
 #include "WS2812.hpp"
@@ -54,14 +55,42 @@ int main()
 #endif
 
 #ifdef MODE_SCREEN
+
+    // Button is provided by the screen.
+    // The buttons are momentary, so we need to
+    // take only the positive edge.
+    // The buttons have good physical
+    // detents, so not much debounce is needed.
+
+    auto input_pin_fn = [&]()
+    {
+        return pico_display.is_pressed(pimoroni::PicoDisplay::A)
+            | pico_display.is_pressed(pimoroni::PicoDisplay::B)
+            | pico_display.is_pressed(pimoroni::PicoDisplay::X)
+            | pico_display.is_pressed(pimoroni::PicoDisplay::Y);
+    };
+
+    Debounce debounce{ Debounce::EDGE_POSITIVE, 50 };
+
 #else
 
-    // Setup button
+    // The button is provided by the foot-switch pin.
+    // The foot-switch is toggle, so we need to take
+    // any edge.
+    // Pressing it gently can cause momentary changes,
+    // so we need a good amount of debounce.
 
     constexpr uint FOOTSWITCH_PIN { 10 };
     gpio_init(FOOTSWITCH_PIN);
     gpio_set_dir(FOOTSWITCH_PIN, GPIO_IN);
     gpio_pull_up(FOOTSWITCH_PIN);
+
+    auto input_pin_fn = []()
+    {
+        return gpio_get(FOOTSWITCH_PIN);        
+    };
+
+    Debounce debounce{ Debounce::EDGE_EITHER, 200 };
 
 #endif
 
@@ -126,21 +155,11 @@ int main()
 
         // Handle button
 
-#ifdef MODE_SCREEN
-
-        bool pressed = pico_display.is_pressed(pimoroni::PicoDisplay::A)
-            | pico_display.is_pressed(pimoroni::PicoDisplay::B)
-            | pico_display.is_pressed(pimoroni::PicoDisplay::X)
-            | pico_display.is_pressed(pimoroni::PicoDisplay::Y);
-
-#else
-        
-        bool pressed = gpio_get(FOOTSWITCH_PIN);
-
-#endif
+        bool pressed = debounce.update(input_pin_fn(), cur_ms);
 
         bool do_flash = false;
         auto [action, index] = button.update(pressed, cur_ms);
+
         switch (action)
         {
             case Button::NOTHING:

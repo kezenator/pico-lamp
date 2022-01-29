@@ -16,8 +16,7 @@ public:
     };
 
     Button()
-        : m_cur_pressed(false)
-        , m_state(IDLE)
+        : m_state(IDLE)
         , m_last_press_time(0)
         , m_press_count(0)
     {
@@ -30,10 +29,8 @@ public:
         Action result_action = NOTHING;
         uint64_t result_count = 0;
 
-        if (pressed != m_cur_pressed)
+        if (pressed)
         {
-            m_cur_pressed = pressed;
-
 #ifdef MODE_SCREEN
             // The Pico Display buttons are momentary -
             // so process whenever it goes high
@@ -116,7 +113,6 @@ private:
         SELECTING_LEVEL,
     };
 
-    bool m_cur_pressed;
     State m_state;
     uint64_t m_last_press_time;
     uint64_t m_press_count;
