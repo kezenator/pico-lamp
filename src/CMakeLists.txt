@@ -35,10 +35,13 @@ add_compile_options(-Wall
 
 add_executable(pico_lamp
         main.cpp
+        WS2812.cpp
         )
 
+pico_generate_pio_header(pico_lamp ${CMAKE_CURRENT_LIST_DIR}/WS2812.pio)        
+
 # pull in common dependencies
-target_link_libraries(pico_lamp pico_stdlib hardware_flash hardware_spi hardware_pwm hardware_dma pico_display)
+target_link_libraries(pico_lamp pico_stdlib hardware_flash hardware_spi hardware_pwm hardware_dma hardware_pio pico_display)
 
 # create map/bin/hex file etc.
 pico_add_extra_outputs(pico_lamp)

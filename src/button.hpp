@@ -34,7 +34,17 @@ public:
         {
             m_cur_pressed = pressed;
 
-            if (pressed)
+#ifdef MODE_SCREEN
+            // The Pico Display buttons are momentary -
+            // so process whenever it goes high
+            bool process = pressed;
+#else
+            // The foot-switch is a toggle, so process
+            // any time it changes
+            bool process = true;
+#endif
+
+            if (process)
             {
                 m_last_press_time = cur_ms;
 

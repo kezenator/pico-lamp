@@ -12,20 +12,29 @@
 #include <tuple>
 #include <vector>
 
+//#define MODE_SCREEN
+#define NUM_WS2812_LEDS 85
+
 #include "button.hpp"
 #include "color.hpp"
 #include "config.hpp"
 #include "pattern.hpp"
 
+#include "WS2812.hpp"
+
+
+
 using namespace pimoroni;
 
 int main()
 {
-    // Ensure LED is off
-    constexpr uint LED_PIN { PICO_DEFAULT_LED_PIN };
-    gpio_init(LED_PIN);
-    gpio_set_dir(LED_PIN, GPIO_OUT);
-    gpio_put(LED_PIN, 0);
+    // Ensure in-build LED is off
+    constexpr uint DEFAULT_LED_PIN { PICO_DEFAULT_LED_PIN };
+    gpio_init(DEFAULT_LED_PIN);
+    gpio_set_dir(DEFAULT_LED_PIN, GPIO_OUT);
+    gpio_put(DEFAULT_LED_PIN, 0);
+
+#ifdef MODE_SCREEN
 
     // Setup display
 
@@ -35,7 +44,26 @@ int main()
     pico_display.set_backlight(100);
     pico_display.set_led(0, 0, 0);
 
+#else
+
+    // Setup LEDs
+
+    constexpr uint WS2812_LED_PIN { 9 };
+    WS2812 leds(WS2812_LED_PIN, NUM_WS2812_LEDS + 1, pio0, 0);
+
+#endif
+
+#ifdef MODE_SCREEN
+#else
+
     // Setup button
+
+    constexpr uint FOOTSWITCH_PIN { 10 };
+    gpio_init(FOOTSWITCH_PIN);
+    gpio_set_dir(FOOTSWITCH_PIN, GPIO_IN);
+    gpio_pull_up(FOOTSWITCH_PIN);
+
+#endif
 
     Button button;
 
@@ -52,6 +80,9 @@ int main()
 
     std::vector<Pattern::ptr> patterns_by_index;
     patterns_by_index.push_back(Pattern::solid("White", Color(255, 255, 255)));
+    patterns_by_index.push_back(Pattern::rainbow());
+    patterns_by_index.push_back(Pattern::static_fade("Green Wash", 60, 110));
+    patterns_by_index.push_back(Pattern::static_fade("Blue Wash", 100, 230));
     patterns_by_index.push_back(Pattern::solid("Red", Color(255, 0, 0)));
     patterns_by_index.push_back(Pattern::solid("Orange", Color(255, 128, 0)));
     patterns_by_index.push_back(Pattern::solid("Yellow", Color(255, 255, 0)));
@@ -60,7 +91,6 @@ int main()
     patterns_by_index.push_back(Pattern::solid("Blue", Color(0, 0, 255)));
     patterns_by_index.push_back(Pattern::solid("Violet", Color(128, 0, 255)));
     patterns_by_index.push_back(Pattern::solid("Magenta", Color(255, 0, 255)));
-    patterns_by_index.push_back(Pattern::rainbow());
 
     std::map<std::string, Pattern::ptr> patterns_by_name;
     for (const auto &pattern : patterns_by_index)
@@ -96,10 +126,18 @@ int main()
 
         // Handle button
 
+#ifdef MODE_SCREEN
+
         bool pressed = pico_display.is_pressed(pimoroni::PicoDisplay::A)
             | pico_display.is_pressed(pimoroni::PicoDisplay::B)
             | pico_display.is_pressed(pimoroni::PicoDisplay::X)
             | pico_display.is_pressed(pimoroni::PicoDisplay::Y);
+
+#else
+        
+        bool pressed = gpio_get(FOOTSWITCH_PIN);
+
+#endif
 
         bool do_flash = false;
         auto [action, index] = button.update(pressed, cur_ms);
@@ -200,12 +238,24 @@ int main()
 
         // Display
 
-        for (uint16_t x = 0; x < PicoDisplay::WIDTH; ++x)
+        for (uint16_t x = 0; x < Pattern::NUM_LEDS; ++x)
         {
             Color c = color_buffer[x].scale(cur_level);
+
+#ifdef MODE_SCREEN
             pico_display.set_pen(c.red, c.green, c.blue);
             pico_display.line({x, 0}, {x, PicoDisplay::HEIGHT - 1});
+#else
+            leds.setPixelColor(x + 1, c.red, c.green, c.blue);
+#endif
         }
+
+#ifdef MODE_SCREEN
         pico_display.update();
+#else
+        leds.setPixelColor(0, 0);
+        leds.show();
+        sleep_ms(20);
+#endif        
     }
 }
